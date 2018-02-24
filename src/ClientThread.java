@@ -49,6 +49,19 @@ public class ClientThread extends Thread {
 						ArrayList<ClientThread> myc = Server.getListOfClients();
 
 						if (user.equals("username")) {
+							
+							
+							if(msg.equals("all"))
+							{
+								for (ClientThread s : myc )
+								{
+									if(s.getUsername() != getUsername())
+									outToClient.writeBytes(s.getUsername() + '\n');
+								}
+							}
+							else
+							{
+							
 							if (getUsername() != null) {
 								System.out.println(getUsername() + " Changed his username to " + msg);
 								setUsername(msg);
@@ -58,6 +71,9 @@ public class ClientThread extends Thread {
 							}
 							outToClient.writeBytes("Your username is set to " + msg + '\n');
 							outToClient.writeBytes("To change you username type username#blablabla" + '\n');
+							
+							}
+							
 
 						} else if (user.equals(getUsername())) {
 							outToClient.writeBytes("You can't send a msg to yourself" + '\n');

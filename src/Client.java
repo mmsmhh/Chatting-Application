@@ -11,14 +11,31 @@ public class Client {
 	public static void main(String argv[]) throws IOException {
 
 		BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+		String username = JOptionPane.showInputDialog("Please enter your username.");
 
-		Socket clientSocket = new Socket("mmsmhh", 6002);
+		Socket clientSocket = null;
+		String n = "";
+		while (true) {
+
+			System.out.println("Which server do you want to connect to?");
+			n = inFromUser.readLine();
+
+			if (n.equals("1")) {
+				clientSocket = new Socket("mmsmhh", 6001);
+				break;
+			} else if (n.equals("2")) {
+				clientSocket = new Socket("mmsmhh", 6002);
+				break;
+			} else {
+				System.out.println("Please choose from server 1 and server 2");
+			}
+
+		}
 
 		DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 
 		BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-		String username = JOptionPane.showInputDialog("Please enter your username.");
 
 		outToServer.writeBytes("username#" + username + '\n');
 

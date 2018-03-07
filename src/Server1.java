@@ -50,7 +50,7 @@ public class Server1 {
 
 									DataOutputStream outToClient1 = new DataOutputStream(
 											connectionSocket2.getOutputStream());
-									outToClient1.writeBytes(sender + ">>>" + msg + '\n');
+									outToClient1.writeBytes(sender + " : " + msg + '\n');
 									found = true;
 								}
 							}
@@ -71,12 +71,16 @@ public class Server1 {
 							String x = "";
 							if (ListOfClients.size() > 0) {
 								for (ClientThread c : Server1.ListOfClients) {
-									x += c.getUsername() + ", ";
+									if (Server1.ListOfClients.get(Server1.ListOfClients.size()-1).equals(c))
+										x += c.getUsername();
+									else
+										x += c.getUsername() + ",";
 								}
 								outToClient.writeBytes(x + '\n');
 
-							} else {
-								outToClient.writeBytes("No Active Clients" + '\n');
+							}
+							else {
+								outToClient.writeBytes("null" + '\n');
 
 							}
 
@@ -84,7 +88,6 @@ public class Server1 {
 						connectionSocket.close();
 						outToClient.close();
 						inFromClient.close();
-
 
 					}
 				} catch (IOException e) {

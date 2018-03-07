@@ -47,11 +47,13 @@ public class ClientThread extends Thread {
 					return;
 				} else {
 
-					if (clientSentence.contains("#") && clientSentence.length() > 3) {
+					if (clientSentence.contains("#") && clientSentence.length() > 4) {
 						String[] word = clientSentence.split("#");
 
 						String user = word[0];
 						String msg = word[1];
+						String ttl = word[2];
+
 						ArrayList<ClientThread> myc = null;
 						if (ServerNumber == 1)
 							myc = Server1.getListOfClients();
@@ -60,28 +62,73 @@ public class ClientThread extends Thread {
 
 						if (user.equals("username")) {
 							if (msg.equals("all")) {
+
+								String allusers = "";
+								/////////
 								if (myc == null || myc.size() == 1)
-									outToClient.writeBytes("No Active Clients" + '\n');
+									allusers = "null";
 								else
 									for (ClientThread s : myc) {
-										if (s.getUsername() != getUsername())
-											outToClient.writeBytes(s.getUsername() + '\n');
+										if (s.getUsername() != getUsername()) {
+											if (myc.get(myc.size() - 1).equals(s))
+												allusers += s.getUsername();
+											else
+												allusers += s.getUsername() + ",";
+
+										}
 									}
 
-								getFromTheOtherServer();
+								allusers += "#1#2#" + getFromTheOtherServer();
+
+								outToClient.writeBytes(allusers + '\n');
+
+								//////////
 
 							} else {
 
 								if (getUsername() != null) {
-									System.out.println(getUsername() + " Changed his username to " + msg);
-									setUsername(msg);
+
+									if (ServerNumber == 1) {
+										if (userIsInside(Server1.getListOfClients(), msg)
+												|| userIsInside(Server2.getListOfClients(), msg)) {
+											outToClient.writeBytes("username#already#exists" + '\n');
+
+										} else {
+											System.out.println(getUsername() + " Changed his username to " + msg);
+											setUsername(msg);
+										}
+
+									} else {
+										if (userIsInside(Server2.getListOfClients(), msg)
+												|| userIsInside(Server1.getListOfClients(), msg)) {
+											outToClient.writeBytes("username#already#exists" + '\n');
+
+										} else {
+											System.out.println(getUsername() + " Changed his username to " + msg);
+											setUsername(msg);
+										}
+
+									}
+
 								} else {
-									setUsername(msg);
-									System.out.println(msg + " Joined");
+									if (ServerNumber == 1) {
+										if (userIsInside(Server1.getListOfClients(), msg)
+												|| userIsInside(Server2.getListOfClients(), msg)) {
+											outToClient.writeBytes("username#already#exists" + '\n');
+										} else {
+											setUsername(msg);
+											System.out.println(msg + " Joined");
+										}
+									} else {
+										if (userIsInside(Server2.getListOfClients(), msg)
+												|| userIsInside(Server1.getListOfClients(), msg)) {
+											outToClient.writeBytes("username#already#exists" + '\n');
+										} else {
+											setUsername(msg);
+											System.out.println(msg + " Joined");
+										}
+									}
 								}
-								outToClient.writeBytes("Your username is set to " + msg + '\n');
-								outToClient.writeBytes("You are connected to Server " + ServerNumber + '\n');
-								outToClient.writeBytes("To change you username type username#blablabla" + '\n');
 
 							}
 
@@ -100,7 +147,10 @@ public class ClientThread extends Thread {
 									DataOutputStream outToClient1 = new DataOutputStream(
 											connectionSocket.getOutputStream());
 									found = true;
-									outToClient1.writeBytes(getUsername() + ">>>" + msg + '\n');
+									if (Integer.parseInt(ttl) > 1)
+										outToClient1.writeBytes(getUsername() + ": " + msg + '\n');
+									else
+										outToClient.writeBytes("#ttl#" + '\n');
 
 								}
 
@@ -109,77 +159,84 @@ public class ClientThread extends Thread {
 							if (found) {
 								found = false;
 							} else {
-								outToClient.writeBytes(
-										"Username not found on the server we will check the other servers" + '\n');
+								// outToClient.writeBytes(
+								// "Username not found on the server we will check the other servers" + '\n');
 								try {
 
 									boolean found1 = false;
 
-									if (ServerNumber == 1) {
-										Socket clientSocket = null;
-										clientSocket = new Socket("mmsmhh", 6022);
+									if (Integer.parseInt(ttl) > 2) {
 
-										DataOutputStream outToServer = new DataOutputStream(
-												clientSocket.getOutputStream());
+										if (ServerNumber == 1) {
+											Socket clientSocket = null;
+											clientSocket = new Socket("mmsmhh", 6022);
 
-										BufferedReader inFromServer = new BufferedReader(
-												new InputStreamReader(clientSocket.getInputStream()));
+											DataOutputStream outToServer = new DataOutputStream(
+													clientSocket.getOutputStream());
 
-										outToServer.writeBytes(getUsername() + "#" + user + "#" + msg + '\n');
-										String answer = null;
-										System.out.println("Sending to server 2");
-										while (true) {
-											answer = inFromServer.readLine();
-											System.out.println("Waiting for server 2");
-											if (answer.equals("false") || answer.equals("true")) {
-												System.out.println("Done");
+											BufferedReader inFromServer = new BufferedReader(
+													new InputStreamReader(clientSocket.getInputStream()));
 
-												break;
+											outToServer.writeBytes(getUsername() + "#" + user + "#" + msg + '\n');
+											String answer = null;
+											System.out.println("Sending to server 2");
+											while (true) {
+												answer = inFromServer.readLine();
+												System.out.println("Waiting for server 2");
+												if (answer.equals("false") || answer.equals("true")) {
+													System.out.println("Done");
+
+													break;
+												}
 											}
-										}
-										if (answer.equals("false")) {
-											found1 = false;
+
+											if (answer.equals("false")) {
+												found1 = false;
+											} else {
+												found1 = true;
+											}
+
 										} else {
-											found1 = true;
+
+											Socket clientSocket = null;
+											clientSocket = new Socket("mmsmhh", 6011);
+
+											DataOutputStream outToServer = new DataOutputStream(
+													clientSocket.getOutputStream());
+
+											BufferedReader inFromServer = new BufferedReader(
+													new InputStreamReader(clientSocket.getInputStream()));
+
+											outToServer.writeBytes(getUsername() + "#" + user + "#" + msg + '\n');
+											String answer = null;
+											System.out.println("Sending to server 1");
+											while (true) {
+												answer = inFromServer.readLine();
+												System.out.println("Waiting for server 2");
+												if (answer.equals("false") || answer.equals("true")) {
+													System.out.println("Done");
+
+													break;
+												}
+											}
+											if (answer.equals("false")) {
+												found1 = false;
+											} else {
+												found1 = true;
+											}
+
+										}
+
+										if (found1) {
+											found1 = false;
+											// outToClient.writeBytes(
+											// "Found on the other server and massage sent succesfully" + '\n');
+										} else {
+											outToClient.writeBytes("User not found try again" + '\n');
 										}
 
 									} else {
-
-										Socket clientSocket = null;
-										clientSocket = new Socket("mmsmhh", 6011);
-
-										DataOutputStream outToServer = new DataOutputStream(
-												clientSocket.getOutputStream());
-
-										BufferedReader inFromServer = new BufferedReader(
-												new InputStreamReader(clientSocket.getInputStream()));
-
-										outToServer.writeBytes(getUsername() + "#" + user + "#" + msg + '\n');
-										String answer = null;
-										System.out.println("Sending to server 1");
-										while (true) {
-											answer = inFromServer.readLine();
-											System.out.println("Waiting for server 2");
-											if (answer.equals("false") || answer.equals("true")) {
-												System.out.println("Done");
-
-												break;
-											}
-										}
-										if (answer.equals("false")) {
-											found1 = false;
-										} else {
-											found1 = true;
-										}
-
-									}
-
-									if (found1) {
-										found1 = false;
-										outToClient.writeBytes(
-												"Found on the other server and massage sent succesfully" + '\n');
-									} else {
-										outToClient.writeBytes("User not found try again" + '\n');
+										outToClient.writeBytes("#ttl#" + '\n');
 									}
 
 								} catch (Exception e) {
@@ -202,9 +259,18 @@ public class ClientThread extends Thread {
 
 	}
 
-	private void getFromTheOtherServer() throws IOException {
-		
-		outToClient.writeBytes("On Server " +ServerNumber+ '\n');
+	private boolean userIsInside(ArrayList<ClientThread> listOfClients, String msg) {
+		// TODO Auto-generated method stub
+		if (listOfClients != null)
+			for (ClientThread x : listOfClients) {
+				if (x.getUsername() != null && x.getUsername().equals(msg))
+					return true;
+			}
+		return false;
+	}
+
+	private String getFromTheOtherServer() throws IOException {
+
 		try {
 
 			boolean found1 = false;
@@ -229,7 +295,7 @@ public class ClientThread extends Thread {
 					}
 
 				}
-				outToClient.writeBytes(answer + '\n');
+				return answer;
 
 			} else {
 
@@ -253,13 +319,15 @@ public class ClientThread extends Thread {
 					}
 				}
 
-				outToClient.writeBytes(answer + '\n');
+				return answer;
 
 			}
 
 		} catch (Exception e) {
 			outToClient.writeBytes("Error Connecting to the server" + '\n');
 			e.printStackTrace();
+			return "Error";
+
 		}
 
 	}
